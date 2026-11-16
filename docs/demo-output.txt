@@ -1,0 +1,349 @@
+## 1. initialise database + adapter credentials
+{
+  "database": "D:\\my-workspace\\ai-workspace\\zhongqiang\\CC_Codex 用户反馈标注(领域专项)项目\\选题\\041_多租户身份映射与原子目录切换\\作答工作区_uid11970-identity-20261117-011303-r1\\.runtime-tmp\\demo\\directory.db",
+  "adapter_file": "D:\\my-workspace\\ai-workspace\\zhongqiang\\CC_Codex 用户反馈标注(领域专项)项目\\选题\\041_多租户身份映射与原子目录切换\\作答工作区_uid11970-identity-20261117-011303-r1\\.runtime-tmp\\demo\\adapters.json",
+  "adapters": [
+    {
+      "adapter_id": "corp-idp-adapter",
+      "issuer": "https://idp.acme.example/oidc",
+      "tenant": "acme"
+    },
+    {
+      "adapter_id": "partner-idp-adapter",
+      "issuer": "https://login.partner.example/saml",
+      "tenant": "acme"
+    },
+    {
+      "adapter_id": "globex-idp-adapter",
+      "issuer": "https://idp.globex.example/oidc",
+      "tenant": "globex"
+    },
+    {
+      "adapter_id": "globex-partner-adapter",
+      "issuer": "https://login.partner.example/saml",
+      "tenant": "globex"
+    }
+  ]
+}
+
+## 2. start four independent service processes
+  server 0: pid=16428 url=http://127.0.0.1:58872
+  server 1: pid=47452 url=http://127.0.0.1:58875
+  server 2: pid=12732 url=http://127.0.0.1:58876
+  server 3: pid=59044 url=http://127.0.0.1:58886
+
+## 3. publish acme revision 3 and globex revision 2
+
+### publish acme r3
+HTTP 201
+{
+  "content_hash": "445581a6f68c90e62d36b6062c74200a4f143766d1b368c96f522ef3e8d63701",
+  "idempotent": false,
+  "outcome": "published",
+  "publication_count": 1,
+  "revision": 3,
+  "tenant": "acme"
+}
+
+### publish globex r2
+HTTP 201
+{
+  "content_hash": "40e5cb98b95cdffd30818d4863ca8dc43123a1527f3be4787bf77ac06c27e9d3",
+  "idempotent": false,
+  "outcome": "published",
+  "publication_count": 1,
+  "revision": 2,
+  "tenant": "globex"
+}
+
+## 4. resolve through different processes
+
+### acme: OIDC subject -> acme-1001
+HTTP 200
+{
+  "account_id": "acme-1001",
+  "adapter_id": "corp-idp-adapter",
+  "enabled": true,
+  "revision": 3,
+  "tenant": "acme"
+}
+
+### same email, different account: partner subject -> acme-1003
+HTTP 200
+{
+  "account_id": "acme-1003",
+  "adapter_id": "partner-idp-adapter",
+  "enabled": true,
+  "revision": 3,
+  "tenant": "acme"
+}
+
+### globex: same issuer+subject as acme, resolves to globex-1001
+HTTP 200
+{
+  "account_id": "globex-1001",
+  "adapter_id": "globex-partner-adapter",
+  "enabled": true,
+  "revision": 2,
+  "tenant": "globex"
+}
+
+### exact triple only: trailing space in subject is NOT bound
+HTTP 403
+{
+  "error": {
+    "code": "identity_not_resolvable",
+    "details": {
+      "revision": 3
+    },
+    "message": "external identity is not bound in the published directory"
+  }
+}
+
+## 5. batch resolve (one revision for the whole response)
+
+### batch
+HTTP 200
+{
+  "adapter_id": "corp-idp-adapter",
+  "all_resolved": false,
+  "resolved_count": 4,
+  "results": [
+    {
+      "account_id": "acme-1001",
+      "enabled": true,
+      "issuer": "https://idp.acme.example/oidc",
+      "resolved": true,
+      "revision": 3,
+      "subject": "00u-as-9011"
+    },
+    {
+      "account_id": "acme-1001",
+      "enabled": true,
+      "issuer": "https://login.partner.example/saml",
+      "resolved": true,
+      "revision": 3,
+      "subject": "AS-9011"
+    },
+    {
+      "account_id": "acme-1002",
+      "enabled": true,
+      "issuer": "https://idp.acme.example/oidc",
+      "resolved": true,
+      "revision": 3,
+      "subject": "00u-bo-4412"
+    },
+    {
+      "account_id": "acme-1003",
+      "enabled": true,
+      "issuer": "https://login.partner.example/saml",
+      "resolved": true,
+      "revision": 3,
+      "subject": "shared.mailbox"
+    },
+    {
+      "enabled": false,
+      "error": {
+        "code": "identity_not_resolvable",
+        "message": "external identity is not bound in the published directory"
+      },
+      "issuer": "https://idp.acme.example/oidc",
+      "resolved": false,
+      "revision": 3,
+      "subject": "00u-as-9011 "
+    }
+  ],
+  "revision": 3,
+  "tenant": "acme"
+}
+
+## 6. publish r4: swap two bindings, rename email, disable an account
+
+### publish acme r4 (swap)
+HTTP 201
+{
+  "content_hash": "19ec73b891fee1de67cda76fe4504eda65b6f20fa776ec6de167110f3dad4911",
+  "idempotent": false,
+  "outcome": "published",
+  "publication_count": 1,
+  "revision": 4,
+  "tenant": "acme"
+}
+
+### swapped: 00u-bo-4412 moved from acme-1002 to acme-1001
+HTTP 200
+{
+  "account_id": "acme-1001",
+  "adapter_id": "corp-idp-adapter",
+  "enabled": true,
+  "revision": 4,
+  "tenant": "acme"
+}
+
+### swapped onto a disabled account: 00u-as-9011 -> acme-1002 (disabled)
+HTTP 403
+{
+  "error": {
+    "code": "identity_not_resolvable",
+    "details": {
+      "account_id": "acme-1002",
+      "enabled": false,
+      "revision": 4
+    },
+    "message": "bound account is disabled"
+  }
+}
+
+## 7. invalid snapshot (dangling binding) is rejected whole
+
+### publish invalid
+HTTP 422
+{
+  "error": {
+    "code": "invalid_snapshot",
+    "message": "snapshot rejected: $.identities[0].account_id: references account 'acme-9999' that is not present in this snapshot",
+    "path": "$"
+  }
+}
+
+### revision after rejection
+HTTP 200
+{
+  "account_count": 3,
+  "content_hash": "19ec73b891fee1de67cda76fe4504eda65b6f20fa776ec6de167110f3dad4911",
+  "identity_count": 4,
+  "publication_count": 1,
+  "published_at": "2026-11-16T19:30:42Z",
+  "revision": 4,
+  "tenant": "acme"
+}
+
+## 8. idempotency / stale / conflict
+
+### republish r4 identical (different array order is equivalent)
+HTTP 200
+{
+  "content_hash": "19ec73b891fee1de67cda76fe4504eda65b6f20fa776ec6de167110f3dad4911",
+  "idempotent": true,
+  "outcome": "unchanged",
+  "publication_count": 2,
+  "revision": 4,
+  "tenant": "acme"
+}
+
+### republish r3 (stale)
+HTTP 409
+{
+  "error": {
+    "code": "stale_revision",
+    "details": {
+      "current_revision": 4,
+      "submitted_revision": 3,
+      "tenant": "acme"
+    },
+    "message": "revision 3 is older than the published revision 4 for tenant 'acme'"
+  }
+}
+
+### publish r4 with different content (conflict)
+HTTP 409
+{
+  "error": {
+    "code": "revision_conflict",
+    "details": {
+      "published_content_hash": "19ec73b891fee1de67cda76fe4504eda65b6f20fa776ec6de167110f3dad4911",
+      "revision": 4,
+      "submitted_content_hash": "e6672fe009fd4316739428d9a6d240cc84ab8aac1292703e944e2da6726bad77",
+      "tenant": "acme"
+    },
+    "message": "revision 4 is already published for tenant 'acme' with different content"
+  }
+}
+
+## 9. publish r5: deny-all; batch must be wholly from one revision
+
+### publish acme r5 (deny all)
+HTTP 201
+{
+  "content_hash": "a17fea15b6a1748d44111776678a167deddffa204e62edca0517798b7182dd34",
+  "idempotent": false,
+  "outcome": "published",
+  "publication_count": 1,
+  "revision": 5,
+  "tenant": "acme"
+}
+
+### batch after deny-all
+HTTP 200
+{
+  "adapter_id": "corp-idp-adapter",
+  "all_resolved": false,
+  "resolved_count": 0,
+  "results": [
+    {
+      "enabled": false,
+      "error": {
+        "code": "identity_not_resolvable",
+        "message": "external identity is not bound in the published directory"
+      },
+      "issuer": "https://idp.acme.example/oidc",
+      "resolved": false,
+      "revision": 5,
+      "subject": "00u-as-9011"
+    },
+    {
+      "enabled": false,
+      "error": {
+        "code": "identity_not_resolvable",
+        "message": "external identity is not bound in the published directory"
+      },
+      "issuer": "https://login.partner.example/saml",
+      "resolved": false,
+      "revision": 5,
+      "subject": "AS-9011"
+    },
+    {
+      "enabled": false,
+      "error": {
+        "code": "identity_not_resolvable",
+        "message": "external identity is not bound in the published directory"
+      },
+      "issuer": "https://idp.acme.example/oidc",
+      "resolved": false,
+      "revision": 5,
+      "subject": "00u-bo-4412"
+    },
+    {
+      "enabled": false,
+      "error": {
+        "code": "identity_not_resolvable",
+        "message": "external identity is not bound in the published directory"
+      },
+      "issuer": "https://login.partner.example/saml",
+      "resolved": false,
+      "revision": 5,
+      "subject": "shared.mailbox"
+    },
+    {
+      "enabled": false,
+      "error": {
+        "code": "identity_not_resolvable",
+        "message": "external identity is not bound in the published directory"
+      },
+      "issuer": "https://idp.acme.example/oidc",
+      "resolved": false,
+      "revision": 5,
+      "subject": "00u-as-9011 "
+    }
+  ],
+  "revision": 5,
+  "tenant": "acme"
+}
+
+## 10. final state read from every server
+  server 0: HTTP 200 revision=5 accounts=3 bindings=0
+  server 1: HTTP 200 revision=5 accounts=3 bindings=0
+  server 2: HTTP 200 revision=5 accounts=3 bindings=0
+  server 3: HTTP 200 revision=5 accounts=3 bindings=0
+
+Demo complete. Database: D:\my-workspace\ai-workspace\zhongqiang\CC_Codex 用户反馈标注(领域专项)项目\选题\041_多租户身份映射与原子目录切换\作答工作区_uid11970-identity-20261117-011303-r1\.runtime-tmp\demo\directory.db

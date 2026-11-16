@@ -1,0 +1,46 @@
+{
+  "tenant": "acme",
+  "revision": 4,
+  "accounts": [
+    {
+      "account_id": "acme-1001",
+      "email": "ana.reyes@acme.example",
+      "display_name": "Ana Reyes (Contractor)",
+      "enabled": true
+    },
+    {
+      "account_id": "acme-1002",
+      "email": "b.okafor@acme.example",
+      "display_name": "Bola Okafor",
+      "enabled": false
+    },
+    {
+      "account_id": "acme-1003",
+      "email": "shared.mailbox@acme.example",
+      "display_name": "Shared Mailbox",
+      "enabled": true
+    }
+  ],
+  "identities": [
+    {
+      "issuer": "https://login.partner.example/saml",
+      "subject": "AS-9011",
+      "account_id": "acme-1002"
+    },
+    {
+      "issuer": "https://idp.acme.example/oidc",
+      "subject": "00u-as-9011",
+      "account_id": "acme-1002"
+    },
+    {
+      "issuer": "https://idp.acme.example/oidc",
+      "subject": "00u-bo-4412",
+      "account_id": "acme-1001"
+    },
+    {
+      "issuer": "https://login.partner.example/saml",
+      "subject": "shared.mailbox",
+      "account_id": "acme-1003"
+    }
+  ]
+}

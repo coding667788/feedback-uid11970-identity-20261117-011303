@@ -1,0 +1,19 @@
+{
+  "tenant": "acme",
+  "revision": 6,
+  "accounts": [
+    {
+      "account_id": "acme-1001",
+      "email": "ana.reyes@acme.example",
+      "display_name": "Ana Reyes (Contractor)",
+      "enabled": true
+    }
+  ],
+  "identities": [
+    {
+      "issuer": "https://idp.acme.example/oidc",
+      "subject": "00u-as-9011",
+      "account_id": "acme-9999"
+    }
+  ]
+}

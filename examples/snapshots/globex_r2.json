@@ -1,0 +1,30 @@
+{
+  "tenant": "globex",
+  "revision": 2,
+  "accounts": [
+    {
+      "account_id": "globex-1001",
+      "email": "a.reyes@acme.example",
+      "display_name": "Ana Reyes (guest)",
+      "enabled": true
+    },
+    {
+      "account_id": "globex-1002",
+      "email": "c.novak@globex.example",
+      "display_name": "Cora Novak",
+      "enabled": true
+    }
+  ],
+  "identities": [
+    {
+      "issuer": "https://login.partner.example/saml",
+      "subject": "AS-9011",
+      "account_id": "globex-1001"
+    },
+    {
+      "issuer": "https://idp.globex.example/oidc",
+      "subject": "00u-cn-7788",
+      "account_id": "globex-1002"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "tenant": "acme",
+  "revision": 5,
+  "accounts": [
+    {
+      "account_id": "acme-1001",
+      "email": "ana.reyes@acme.example",
+      "display_name": "Ana Reyes (Contractor)",
+      "enabled": false
+    },
+    {
+      "account_id": "acme-1002",
+      "email": "b.okafor@acme.example",
+      "display_name": "Bola Okafor",
+      "enabled": false
+    },
+    {
+      "account_id": "acme-1003",
+      "email": "shared.mailbox@acme.example",
+      "display_name": "Shared Mailbox",
+      "enabled": false
+    }
+  ],
+  "identities": []
+}

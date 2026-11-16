@@ -1,0 +1,24 @@
+{
+  "identities": [
+    {
+      "issuer": "https://idp.acme.example/oidc",
+      "subject": "00u-as-9011"
+    },
+    {
+      "issuer": "https://login.partner.example/saml",
+      "subject": "AS-9011"
+    },
+    {
+      "issuer": "https://idp.acme.example/oidc",
+      "subject": "00u-bo-4412"
+    },
+    {
+      "issuer": "https://login.partner.example/saml",
+      "subject": "shared.mailbox"
+    },
+    {
+      "issuer": "https://idp.acme.example/oidc",
+      "subject": "00u-as-9011 "
+    }
+  ]
+}
